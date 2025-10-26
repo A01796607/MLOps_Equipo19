@@ -1,4 +1,0 @@
-[core]
-    remote = onedrive_remote
-['remote "onedrive_remote"']
-    url = C:\Users\eduar\OneDrive - Instituto Tecnologico y de Estudios Superiores de Monterrey\TEC\MLOps\Proyecto MLOps Equipo 19\Datasets
