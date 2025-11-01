@@ -33,7 +33,7 @@ def main():
     
     # Initialize MLflow Manager
     mlflow_manager = MLflowManager(
-        experiment_name="MusicEmotions_Experiments" + datetime.now().strftime("%Y%m%d_%H%M%S"),
+        experiment_name="MusicEmotions_Experiments - " + datetime.now().strftime("%Y%m%d_%H%M%S"),
         tracking_uri=None  # Uses local file store
     )
     
