@@ -219,16 +219,4 @@ __marimo__/
 /mlflow_artifacts
 /models
 
-.dvc/config
-.dvc/tmp/
-.dvc/cache/
-.dvc/config.local
-.dvc/state-journal
-.dvc/tmp/
-.dvc/cache/
-.dvc/config.local
-.dvc/state-journal
-.dvc/tmp/
-.dvc/cache/
-.dvc/config.local
-.dvc/state-journal
+.dvc/
