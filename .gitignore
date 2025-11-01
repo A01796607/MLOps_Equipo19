@@ -1,6 +1,9 @@
 # macOS metadata
 .DS_Store
 
+# MLflow artifacts (tracked by DVC)
+mlflow_artifacts/
+
 # Virtual Environments
 venv/
 
@@ -214,3 +217,5 @@ __marimo__/
 /prueba_dvc.txt
 /reports/figures/*
 /mlruns/*
+/mlflow_artifacts
+/models
