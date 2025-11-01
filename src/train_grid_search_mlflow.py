@@ -23,7 +23,7 @@ from src.data_processor import DataProcessor
 from src.feature_transformer import FeatureTransformer
 from src.model_trainer import ModelTrainer
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR
-from mlops.MLFLow_Equipo19 import MLflowManager, track_training_experiment
+from mlops.mlflow import MLflowManager, track_training_experiment
 
 
 def main():

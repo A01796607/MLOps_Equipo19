@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from mlops.MLFLow_Equipo19 import MLflowManager
+from src.dvc import DVCManager
 from loguru import logger
 
 def main():
@@ -38,7 +38,7 @@ def main():
     # Setup DVC S3 remote
     # Note: If you have AWS profile configured, you can use it instead of credentials
     # If ACCESS_KEY_ID is empty, setup will use AWS profile from ~/.aws/credentials
-    success = MLflowManager.setup_dvc_s3_remote(
+    success = DVCManager.setup_s3_remote(
         bucket_name=BUCKET_NAME,
         access_key_id=ACCESS_KEY_ID if ACCESS_KEY_ID else None,
         secret_access_key=SECRET_ACCESS_KEY if SECRET_ACCESS_KEY else None,
@@ -71,9 +71,10 @@ def main():
         logger.info("   dvc add data/raw/")
         logger.info("\n3. Push data to S3:")
         logger.info("   dvc push")
-        logger.info("\n4. Or use the MLflowManager methods:")
-        logger.info("   manager = MLflowManager()")
-        logger.info("   manager.push_data_to_s3()")
+        logger.info("\n4. Or use the DVCManager methods:")
+        logger.info("   from src.dvc import DVCManager")
+        logger.info("   manager = DVCManager()")
+        logger.info("   manager.push_to_s3()")
     else:
         logger.error("\n❌ Failed to configure DVC with S3.")
         logger.error("Please check your credentials and try again.")

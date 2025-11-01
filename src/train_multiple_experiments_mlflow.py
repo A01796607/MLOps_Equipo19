@@ -23,7 +23,7 @@ from src.feature_transformer import FeatureTransformer
 from src.model_trainer import ModelTrainer
 from src.plotter import Plotter
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, FIGURES_DIR
-from mlops.MLFLow_Equipo19 import MLflowManager, track_training_experiment
+from mlops.mlflow import MLflowManager, track_training_experiment
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
     
     # Initialize MLflow Manager
     mlflow_manager = MLflowManager(
-        experiment_name="MusicEmotions_Experiments",
+        experiment_name="MusicEmotions_Experiments" + datetime.now().strftime("%Y%m%d_%H%M%S"),
         tracking_uri=None  # Uses local file store
     )
     

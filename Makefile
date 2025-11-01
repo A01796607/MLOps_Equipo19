@@ -94,11 +94,11 @@ setup-dvc-s3:
 
 dvc-push-s3:
 	@echo "Pushing DVC data to S3..."
-	$(PYTHON_INTERPRETER) -c "from mlops.MLFLow_Equipo19 import MLflowManager; MLflowManager().push_data_to_s3()"
+	$(PYTHON_INTERPRETER) -c "from mlops.mlflow import MLflowManager; MLflowManager().push_data_to_s3()"
 
 dvc-pull-s3:
 	@echo "Pulling DVC data from S3..."
-	$(PYTHON_INTERPRETER) -c "from mlops.MLFLow_Equipo19 import MLflowManager; MLflowManager().pull_data_from_s3()"
+	$(PYTHON_INTERPRETER) -c "from mlops.mlflow import MLflowManager; MLflowManager().pull_data_from_s3()"
 
 example-dvc-s3:
 	@echo "Running DVC + S3 integration example..."
