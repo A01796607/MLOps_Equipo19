@@ -17,13 +17,15 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from itertools import product
+from datetime import datetime
 
 from src.data_processor import DataProcessor
 from src.feature_transformer import FeatureTransformer
 from src.model_trainer import ModelTrainer
 from src.plotter import Plotter
+from src.dvcS3 import DVCManager
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, FIGURES_DIR
-from mlops.MLFLow_Equipo19 import MLflowManager, track_training_experiment
+from mlops.mlflow import MLflowManager, track_training_experiment
 
 
 def main():
@@ -31,7 +33,7 @@ def main():
     
     # Initialize MLflow Manager
     mlflow_manager = MLflowManager(
-        experiment_name="MusicEmotions_MultipleExperiments",
+        experiment_name="MusicEmotions_Experiments" + datetime.now().strftime("%Y%m%d_%H%M%S"),
         tracking_uri=None  # Uses local file store
     )
     
@@ -40,6 +42,13 @@ def main():
     print("=" * 60)
     print(f"Experiment: {mlflow_manager.experiment_name}")
     print(f"Tracking URI: {mlflow_manager.client.tracking_uri}")
+    print()
+    
+    # Pull data from S3 if tracked by DVC
+    print("Pulling data from S3 if tracked by DVC...")
+    DVCManager.initialize_dvc_s3()
+    dvc_manager = DVCManager()
+    dvc_manager.pull_from_s3()
     print()
     
     # Step 1: Load and prepare data (only once)
@@ -195,7 +204,6 @@ def main():
             
             # Step 4: Track experiment in MLflow
             # Create descriptive run name similar to MLflow UI format
-            from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             run_name = f"{exp_config['model_type'].lower()}_{timestamp}_exp{exp_idx}"
             
