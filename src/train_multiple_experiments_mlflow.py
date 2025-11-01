@@ -31,7 +31,7 @@ def main():
     
     # Initialize MLflow Manager
     mlflow_manager = MLflowManager(
-        experiment_name="MusicEmotions_MultipleExperiments",
+        experiment_name="MusicEmotions_Experiments",
         tracking_uri=None  # Uses local file store
     )
     
