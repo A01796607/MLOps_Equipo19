@@ -87,6 +87,23 @@ train-mlflow-multi:
 train-mlflow-grid:
 	$(PYTHON_INTERPRETER) src/train_grid_search_mlflow.py
 
+## DVC + S3 Commands
+setup-dvc-s3:
+	@echo "Setting up DVC with S3..."
+	$(PYTHON_INTERPRETER) scripts/setup_dvc_s3.py
+
+dvc-push-s3:
+	@echo "Pushing DVC data to S3..."
+	$(PYTHON_INTERPRETER) -c "from mlops.MLFLow_Equipo19 import MLflowManager; MLflowManager().push_data_to_s3()"
+
+dvc-pull-s3:
+	@echo "Pulling DVC data from S3..."
+	$(PYTHON_INTERPRETER) -c "from mlops.MLFLow_Equipo19 import MLflowManager; MLflowManager().pull_data_from_s3()"
+
+example-dvc-s3:
+	@echo "Running DVC + S3 integration example..."
+	$(PYTHON_INTERPRETER) examples/dvc_s3_integration_example.py
+
 ## Start MLflow UI server
 .PHONY: mlflow-ui
 mlflow-ui:

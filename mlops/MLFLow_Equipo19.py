@@ -7,8 +7,10 @@ This module provides comprehensive MLflow integration for:
 - Model registry and versioning
 - Result visualization and comparison
 - Model lifecycle management
+- DVC data versioning integration
 """
 import os
+import subprocess
 from pathlib import Path
 from typing import Dict, Optional, Any, List
 from datetime import datetime
@@ -30,6 +32,15 @@ from sklearn.metrics import (
     recall_score,
     f1_score
 )
+
+# Try to import DVC (optional dependency)
+try:
+    import dvc.api
+    from dvc.repo import Repo
+    DVC_AVAILABLE = True
+except ImportError:
+    DVC_AVAILABLE = False
+    logger.warning("DVC not available. Data versioning features will be disabled.")
 
 
 class MLflowManager:
@@ -85,6 +96,28 @@ class MLflowManager:
         
         self.client = MlflowClient()
         self.current_run = None
+        
+        # DVC repository (lazy initialization)
+        self._dvc_repo = None
+        if DVC_AVAILABLE:
+            try:
+                self._dvc_repo = Repo()
+                logger.debug("DVC repository initialized")
+            except Exception as e:
+                logger.warning(f"DVC repository not found: {e}")
+                self._dvc_repo = None
+    
+    @property
+    def dvc_repo(self):
+        """Lazy initialization of DVC repo."""
+        if not DVC_AVAILABLE:
+            return None
+        if self._dvc_repo is None:
+            try:
+                self._dvc_repo = Repo()
+            except Exception:
+                pass
+        return self._dvc_repo
         
     def start_run(self, run_name: Optional[str] = None, tags: Optional[Dict[str, str]] = None):
         """
@@ -401,6 +434,379 @@ class MLflowManager:
         else:
             logger.warning(f"Artifact not found: {file_path}")
     
+    def log_dvc_data_version(
+        self,
+        data_path: Path,
+        data_type: str = "dataset"
+    ):
+        """
+        Log DVC data versioning information to MLflow.
+        
+        This function extracts DVC version information for tracked data files
+        and registers it in MLflow for reproducibility. It also logs S3 location
+        if DVC is configured with S3 remote storage.
+        
+        Args:
+            data_path: Path to the data file/directory tracked by DVC
+            data_type: Type of data (e.g., 'dataset', 'model', 'features')
+            
+        Returns:
+            Dictionary with DVC version info (hash, git_commit, s3_location, size) or None
+        """
+        if not DVC_AVAILABLE or self.dvc_repo is None:
+            logger.debug("DVC not available. Skipping data version logging.")
+            return None
+        
+        try:
+            # Convert to relative path from project root
+            data_path = Path(data_path)
+            repo_root = Path(self.dvc_repo.root_dir)
+            
+            # Try to make it relative to DVC repo root
+            if data_path.is_absolute():
+                try:
+                    data_path = data_path.relative_to(repo_root)
+                except ValueError:
+                    # Path is outside repo, try to find .dvc file in repo
+                    pass
+            
+            # Check if there's a .dvc file for this path
+            dvc_file = repo_root / f"{data_path}.dvc"
+            if not dvc_file.exists() and data_path.is_dir():
+                # Try with directory name
+                dvc_file = repo_root / data_path / ".dvc"
+            if not dvc_file.exists():
+                logger.debug(f"No .dvc file found for {data_path}")
+                return None
+            
+            # Read DVC file to get hash
+            dvc_info = {}
+            if dvc_file.exists():
+                try:
+                    import yaml
+                    with open(dvc_file, 'r') as f:
+                        dvc_content = yaml.safe_load(f)
+                    
+                    if 'outs' in dvc_content and len(dvc_content['outs']) > 0:
+                        out = dvc_content['outs'][0]
+                        dvc_info = {
+                            'hash': out.get('md5', out.get('hash', 'unknown')),
+                            'size': out.get('size', 0),
+                            'nfiles': out.get('nfiles', 1)
+                        }
+                except Exception as e:
+                    logger.warning(f"Error reading DVC file {dvc_file}: {e}")
+                    return None
+            
+            # Get Git commit (if available)
+            git_commit = None
+            try:
+                git_commit = subprocess.check_output(
+                    ['git', 'rev-parse', 'HEAD'],
+                    stderr=subprocess.DEVNULL,
+                    cwd=repo_root
+                ).decode().strip()
+            except Exception:
+                pass
+            
+            # Get DVC remote info (S3 if configured)
+            s3_location = None
+            try:
+                # Get default remote
+                try:
+                    default_output = subprocess.check_output(
+                        ['dvc', 'remote', 'default'],
+                        stderr=subprocess.DEVNULL,
+                        cwd=repo_root
+                    ).decode().strip()
+                    default_remote = default_output
+                except Exception:
+                    # Try to get from config
+                    config_file = repo_root / ".dvc" / "config"
+                    if config_file.exists():
+                        with open(config_file, 'r') as f:
+                            config_content = f.read()
+                            # Try to extract default remote
+                            if 'remote =' in config_content:
+                                for line in config_content.split('\n'):
+                                    if 'remote =' in line:
+                                        default_remote = line.split('=')[-1].strip()
+                                        break
+                                else:
+                                    default_remote = None
+                            else:
+                                default_remote = None
+                    else:
+                        default_remote = None
+                
+                # Get remote URL
+                if default_remote:
+                    try:
+                        remote_url_output = subprocess.check_output(
+                            ['dvc', 'remote', 'list', '-d', default_remote],
+                            stderr=subprocess.DEVNULL,
+                            cwd=repo_root
+                        ).decode()
+                        
+                        # Try alternative method to get URL
+                        config_file = repo_root / ".dvc" / "config"
+                        if config_file.exists():
+                            with open(config_file, 'r') as f:
+                                config_lines = f.readlines()
+                                in_remote_section = False
+                                for line in config_lines:
+                                    if f'["remote "{default_remote}"]' in line or f'["remote \'{default_remote}\']' in line:
+                                        in_remote_section = True
+                                    elif line.strip().startswith('[') and in_remote_section:
+                                        break
+                                    elif in_remote_section and 'url' in line:
+                                        s3_base = line.split('=')[-1].strip()
+                                        if s3_base.startswith('s3://'):
+                                            # Construct S3 location with hash
+                                            hash_val = dvc_info.get('hash', '')
+                                            if hash_val and hash_val != 'unknown':
+                                                hash_prefix = hash_val[:2]
+                                                s3_location = f"{s3_base}/{hash_prefix}/{hash_val}"
+                                            break
+                    except Exception as e:
+                        logger.debug(f"Could not get remote URL: {e}")
+                        
+            except Exception as e:
+                logger.debug(f"Could not get S3 location: {e}")
+            
+            # Log to MLflow
+            hash_val = dvc_info.get('hash', 'unknown')
+            mlflow.log_param(f"{data_type}_dvc_hash", hash_val)
+            mlflow.log_param(f"{data_type}_path", str(data_path))
+            mlflow.log_param(f"{data_type}_size_bytes", dvc_info.get('size', 0))
+            mlflow.log_param(f"{data_type}_nfiles", dvc_info.get('nfiles', 1))
+            
+            if git_commit:
+                mlflow.log_param(f"{data_type}_git_commit", git_commit[:7])  # Short commit hash
+            
+            if s3_location:
+                mlflow.log_param(f"{data_type}_s3_location", s3_location)
+                logger.info(f"Registered {data_type} DVC version with S3 location: {s3_location}")
+            else:
+                logger.info(f"Registered {data_type} DVC version: {hash_val[:8] if hash_val != 'unknown' else 'unknown'}")
+            
+            return {
+                'hash': hash_val,
+                'git_commit': git_commit,
+                's3_location': s3_location,
+                'size': dvc_info.get('size', 0)
+            }
+            
+        except Exception as e:
+            logger.warning(f"Could not log DVC version for {data_path}: {e}")
+            return None
+    
+    @staticmethod
+    def setup_dvc_s3_remote(
+        bucket_name: str,
+        access_key_id: str,
+        secret_access_key: str,
+        region: str = "us-east-1",
+        remote_name: str = "s3-storage",
+        remote_path: str = "dvc-data",
+        set_as_default: bool = True
+    ) -> bool:
+        """
+        Configure DVC to use S3 as remote storage.
+        
+        Args:
+            bucket_name: S3 bucket name (without s3:// prefix)
+            access_key_id: AWS access key ID
+            secret_access_key: AWS secret access key
+            region: AWS region (default: us-east-1)
+            remote_name: Name for the DVC remote (default: s3-storage)
+            remote_path: Path within bucket for DVC data (default: dvc-data)
+            set_as_default: Whether to set this as the default remote
+            
+        Returns:
+            True if configuration was successful, False otherwise
+        """
+        if not DVC_AVAILABLE:
+            logger.error("DVC is not installed. Install with: pip install 'dvc[s3]'")
+            return False
+        
+        try:
+            repo_root = Path.cwd()
+            
+            # Initialize DVC if not already initialized
+            if not (repo_root / ".dvc").exists():
+                logger.info("Initializing DVC repository...")
+                subprocess.check_call(
+                    ['dvc', 'init'],
+                    cwd=repo_root,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            
+            # Check if remote already exists
+            try:
+                existing_remotes = subprocess.check_output(
+                    ['dvc', 'remote', 'list'],
+                    cwd=repo_root,
+                    stderr=subprocess.DEVNULL
+                ).decode().strip().split('\n')
+                
+                if remote_name in existing_remotes:
+                    logger.info(f"Remote '{remote_name}' already exists. Removing it first...")
+                    subprocess.check_call(
+                        ['dvc', 'remote', 'remove', remote_name],
+                        cwd=repo_root,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+            except subprocess.CalledProcessError:
+                pass
+            
+            # Add S3 remote
+            s3_url = f"s3://{bucket_name}/{remote_path}"
+            logger.info(f"Adding DVC remote '{remote_name}' pointing to {s3_url}...")
+            
+            subprocess.check_call(
+                ['dvc', 'remote', 'add', remote_name, s3_url],
+                cwd=repo_root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+            # Configure credentials
+            subprocess.check_call(
+                ['dvc', 'remote', 'modify', remote_name, 'access_key_id', access_key_id],
+                cwd=repo_root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+            subprocess.check_call(
+                ['dvc', 'remote', 'modify', remote_name, 'secret_access_key', secret_access_key],
+                cwd=repo_root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+            subprocess.check_call(
+                ['dvc', 'remote', 'modify', remote_name, 'region', region],
+                cwd=repo_root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+            # Set as default if requested
+            if set_as_default:
+                subprocess.check_call(
+                    ['dvc', 'remote', 'default', remote_name],
+                    cwd=repo_root,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            
+            logger.success(f"DVC S3 remote configured successfully!")
+            logger.info(f"Remote name: {remote_name}")
+            logger.info(f"S3 URL: {s3_url}")
+            logger.info(f"Region: {region}")
+            logger.info(f"Default remote: {'Yes' if set_as_default else 'No'}")
+            
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error configuring DVC S3 remote: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error configuring DVC S3 remote: {e}")
+            return False
+    
+    def ensure_data_versioned(self, data_path: Path, data_type: str = "dataset") -> bool:
+        """
+        Ensure data is versioned with DVC. If not, add it to DVC tracking.
+        
+        Args:
+            data_path: Path to data file/directory to version
+            data_type: Type of data (for logging)
+            
+        Returns:
+            True if data is now versioned, False otherwise
+        """
+        if not DVC_AVAILABLE:
+            logger.warning("DVC not available. Cannot version data.")
+            return False
+        
+        try:
+            repo_root = Path.cwd()
+            data_path = Path(data_path)
+            
+            # Check if data is already tracked
+            dvc_file = repo_root / f"{data_path}.dvc"
+            if dvc_file.exists():
+                logger.info(f"{data_type} already versioned with DVC")
+                return True
+            
+            # Add to DVC
+            logger.info(f"Adding {data_type} to DVC tracking...")
+            subprocess.check_call(
+                ['dvc', 'add', str(data_path)],
+                cwd=repo_root
+            )
+            
+            logger.success(f"{data_type} successfully added to DVC")
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error adding {data_type} to DVC: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error versioning {data_type}: {e}")
+            return False
+    
+    def push_data_to_s3(self) -> bool:
+        """
+        Push all DVC-tracked data to S3 remote.
+        
+        Returns:
+            True if push was successful, False otherwise
+        """
+        if not DVC_AVAILABLE:
+            logger.error("DVC not available. Cannot push to S3.")
+            return False
+        
+        try:
+            logger.info("Pushing DVC-tracked data to S3...")
+            subprocess.check_call(
+                ['dvc', 'push'],
+                cwd=Path.cwd()
+            )
+            logger.success("Data successfully pushed to S3")
+            return True
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error pushing data to S3: {e}")
+            return False
+    
+    def pull_data_from_s3(self) -> bool:
+        """
+        Pull all DVC-tracked data from S3 remote.
+        
+        Returns:
+            True if pull was successful, False otherwise
+        """
+        if not DVC_AVAILABLE:
+            logger.error("DVC not available. Cannot pull from S3.")
+            return False
+        
+        try:
+            logger.info("Pulling DVC-tracked data from S3...")
+            subprocess.check_call(
+                ['dvc', 'pull'],
+                cwd=Path.cwd()
+            )
+            logger.success("Data successfully pulled from S3")
+            return True
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error pulling data from S3: {e}")
+            return False
+    
     def log_artifacts(self, directory: Path, artifact_path: Optional[str] = None):
         """
         Log all files in a directory as artifacts.
@@ -548,6 +954,25 @@ def track_training_experiment(
             "n_features": X_train.shape[1],
             "n_classes": len(np.unique(y_train))
         })
+        
+        # Log DVC data versions if available
+        # This tracks which version of data was used for this experiment
+        from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
+        
+        # Version del dataset raw
+        if (RAW_DATA_DIR / "raw.dvc").exists() or Path("data/raw.dvc").exists():
+            mlflow_manager.log_dvc_data_version(
+                RAW_DATA_DIR / "raw" if (RAW_DATA_DIR / "raw").exists() else Path("data/raw"),
+                data_type="raw_data"
+            )
+        
+        # Version del transformer si está trackeado
+        transformer_dvc_path = PROCESSED_DATA_DIR / "transformer.pkl.dvc"
+        if transformer_dvc_path.exists():
+            mlflow_manager.log_dvc_data_version(
+                PROCESSED_DATA_DIR / "transformer.pkl",
+                data_type="transformer"
+            )
         
         # Get predictions
         if hasattr(model, 'predict'):
