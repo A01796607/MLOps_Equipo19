@@ -1,0 +1,10 @@
+artifact_location: file:///Users/salvadorhernandez/Documents/worksplace/MLOps_Equipo19/mlruns/207920027952637974/models/m-bd20cf820ea643ce9a9c98df6fbeb5d2/artifacts
+creation_timestamp: 1761959248051
+experiment_id: '207920027952637974'
+last_updated_timestamp: 1761959249455
+model_id: m-bd20cf820ea643ce9a9c98df6fbeb5d2
+model_type: null
+name: lightgbm_model
+source_run_id: 625b3e878e6f4408af60d9215869f6c7
+status: 2
+status_message: null

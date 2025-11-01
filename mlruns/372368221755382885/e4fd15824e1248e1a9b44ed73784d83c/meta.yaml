@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/salvadorhernandez/Documents/worksplace/MLOps_Equipo19/mlruns/372368221755382885/e4fd15824e1248e1a9b44ed73784d83c/artifacts
+end_time: 1761958626262
+entry_point_name: ''
+experiment_id: '372368221755382885'
+lifecycle_stage: active
+run_id: e4fd15824e1248e1a9b44ed73784d83c
+run_name: lightgbm_20251031_185704
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761958624841
+status: 3
+tags: []
+user_id: salvadorhernandez

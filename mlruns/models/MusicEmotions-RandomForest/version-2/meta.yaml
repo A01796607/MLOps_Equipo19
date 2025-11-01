@@ -1,0 +1,15 @@
+creation_timestamp: 1761958624748
+current_stage: None
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1761958624748
+model_id: m-d0bd4b665d7642d486fc86e35ba1b990
+name: MusicEmotions-RandomForest
+run_id: 86a1db6f82034570aca55a5f58668154
+run_link: null
+source: models:/m-d0bd4b665d7642d486fc86e35ba1b990
+status: READY
+status_message: null
+storage_location: file:///Users/salvadorhernandez/Documents/worksplace/MLOps_Equipo19/mlruns/372368221755382885/models/m-d0bd4b665d7642d486fc86e35ba1b990/artifacts
+user_id: null
+version: 2

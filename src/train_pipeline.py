@@ -2,11 +2,18 @@
 Complete training pipeline using OOP classes.
 This script demonstrates how to use the classes to train a model.
 """
+import sys
+from pathlib import Path
+
+# Add project root to Python path to enable imports
+project_root = Path(__file__).resolve().parents[1]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
-from pathlib import Path
 
 from src.data_processor import DataProcessor
 from src.feature_transformer import FeatureTransformer

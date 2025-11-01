@@ -1,0 +1,10 @@
+artifact_location: file:///Users/salvadorhernandez/Documents/worksplace/MLOps_Equipo19/mlruns/372368221755382885/models/m-d0bd4b665d7642d486fc86e35ba1b990/artifacts
+creation_timestamp: 1761958622818
+experiment_id: '372368221755382885'
+last_updated_timestamp: 1761958624738
+model_id: m-d0bd4b665d7642d486fc86e35ba1b990
+model_type: null
+name: random_forest
+source_run_id: 86a1db6f82034570aca55a5f58668154
+status: 2
+status_message: null

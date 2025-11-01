@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/salvadorhernandez/Documents/worksplace/MLOps_Equipo19/mlruns/845400362344620590/6ff1fba197514d879cb7624f58081718/artifacts
+end_time: 1761958876040
+entry_point_name: ''
+experiment_id: '845400362344620590'
+lifecycle_stage: active
+run_id: 6ff1fba197514d879cb7624f58081718
+run_name: test_random_forest_20251031_190114
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761958874520
+status: 3
+tags: []
+user_id: salvadorhernandez

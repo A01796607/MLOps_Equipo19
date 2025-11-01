@@ -1,0 +1,32 @@
+artifact_path: file:///Users/salvadorhernandez/Documents/worksplace/MLOps_Equipo19/mlruns/207920027952637974/models/m-7d925a2608e6415eb1779b61d9999dde/artifacts
+flavors:
+  lightgbm:
+    code: null
+    data: model.lgb
+    lgb_version: 4.6.0
+    model_class: lightgbm.basic.Booster
+  python_function:
+    data: model.lgb
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.lightgbm
+    python_version: 3.13.2
+is_signature_from_type_hint: false
+mlflow_version: 3.5.1
+model_id: m-7d925a2608e6415eb1779b61d9999dde
+model_size_bytes: 20990
+model_uuid: m-7d925a2608e6415eb1779b61d9999dde
+prompts: null
+run_id: 6e120ae6400d4f79bbe5f2138bf7a6fb
+saved_input_example_info:
+  artifact_path: input_example.json
+  serving_input_path: serving_input_example.json
+  type: ndarray
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1, 50]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1,
+    4]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2025-11-01 01:06:23.539223'

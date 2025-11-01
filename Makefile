@@ -69,6 +69,36 @@ data: requirements
 
 
 #################################################################################
+# MLFLOW COMMANDS                                                               #
+#################################################################################
+
+## Train models with MLflow tracking (single run)
+.PHONY: train-mlflow
+train-mlflow:
+	$(PYTHON_INTERPRETER) src/train_with_mlflow.py
+
+## Run multiple experiments with MLflow tracking
+.PHONY: train-mlflow-multi
+train-mlflow-multi:
+	$(PYTHON_INTERPRETER) src/train_multiple_experiments_mlflow.py
+
+## Run grid search experiments with MLflow tracking
+.PHONY: train-mlflow-grid
+train-mlflow-grid:
+	$(PYTHON_INTERPRETER) src/train_grid_search_mlflow.py
+
+## Start MLflow UI server
+.PHONY: mlflow-ui
+mlflow-ui:
+	mlflow ui --port 5000
+
+## List MLflow experiments
+.PHONY: mlflow-list
+mlflow-list:
+	mlflow experiments list
+
+
+#################################################################################
 # Self Documenting Commands                                                     #
 #################################################################################
 
