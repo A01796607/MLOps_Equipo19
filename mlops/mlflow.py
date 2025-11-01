@@ -713,9 +713,7 @@ def track_training_experiment(
     transformer: Optional[Any] = None,
     mlflow_manager: Optional[MLflowManager] = None,
     registered_model_name: Optional[str] = None,
-    tags: Optional[Dict[str, str]] = None,
-    pull_data_before_training: bool = False,
-    push_data_after_training: bool = True
+    tags: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """
     Complete function to track a training experiment with MLflow.
@@ -734,8 +732,6 @@ def track_training_experiment(
         mlflow_manager: MLflowManager instance (creates new if None)
         registered_model_name: Name for model registry
         tags: Additional tags for the run
-        pull_data_before_training: If True, pull data from S3 before training
-        push_data_after_training: If True, push data to S3 after training
         
     Returns:
         Dictionary with run information and metrics
@@ -746,11 +742,6 @@ def track_training_experiment(
     run_tags = tags or {}
     run_tags["model_type"] = model_type
     run_tags["model_name"] = model_name
-    
-    # Pull data from S3 if requested
-    if pull_data_before_training:
-        logger.info("Pulling data from S3 before training...")
-        mlflow_manager.pull_data_from_s3()
     
     # Start run
     mlflow_manager.start_run(run_name=f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}", tags=run_tags)
