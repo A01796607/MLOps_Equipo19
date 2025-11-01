@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.dvc import DVCManager
+from src.dvcS3 import DVCManager
 from loguru import logger
 
 def main():
@@ -25,6 +25,9 @@ def main():
     ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
     SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
     REGION = "us-east-2"
+
+    print(f"ACCESS_KEY_ID: {ACCESS_KEY_ID}")
+    print(f"SECRET_ACCESS_KEY: {SECRET_ACCESS_KEY}")
     
     # S3 Configuration
     # Bucket path: s3://itesm-mna/202502-equipo19
@@ -40,10 +43,10 @@ def main():
     # If ACCESS_KEY_ID is empty, setup will use AWS profile from ~/.aws/credentials
     success = DVCManager.setup_s3_remote(
         bucket_name=BUCKET_NAME,
-        access_key_id=ACCESS_KEY_ID if ACCESS_KEY_ID else None,
-        secret_access_key=SECRET_ACCESS_KEY if SECRET_ACCESS_KEY else None,
+        access_key_id=ACCESS_KEY_ID,
+        secret_access_key=SECRET_ACCESS_KEY,
         region=REGION,
-        remote_name="s3-storage",
+        remote_name="team_remote",
         remote_path=BUCKET_PATH,
         set_as_default=True
     )

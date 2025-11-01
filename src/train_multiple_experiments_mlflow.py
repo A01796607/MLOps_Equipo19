@@ -23,7 +23,7 @@ from src.data_processor import DataProcessor
 from src.feature_transformer import FeatureTransformer
 from src.model_trainer import ModelTrainer
 from src.plotter import Plotter
-from src.dvc import DVCManager
+from src.dvcS3 import DVCManager
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, FIGURES_DIR
 from mlops.mlflow import MLflowManager, track_training_experiment
 
@@ -46,6 +46,7 @@ def main():
     
     # Pull data from S3 if tracked by DVC
     print("Pulling data from S3 if tracked by DVC...")
+    DVCManager.initialize_dvc_s3()
     dvc_manager = DVCManager()
     dvc_manager.pull_from_s3()
     print()

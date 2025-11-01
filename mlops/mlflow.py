@@ -584,32 +584,6 @@ class MLflowManager:
             logger.warning(f"Could not log DVC version for {data_path}: {e}")
             return None
     
-    def pull_data_from_s3(self) -> bool:
-        """
-        Pull all DVC-tracked data from S3 remote.
-        
-        Returns:
-            True if pull was successful, False otherwise
-        """
-        if not DVC_AVAILABLE or self._dvc_manager is None:
-            logger.error("DVC not available. Cannot pull from S3.")
-            return False
-        
-        return self._dvc_manager.pull_from_s3()
-    
-    def push_data_to_s3(self) -> bool:
-        """
-        Push all DVC-tracked data to S3 remote.
-        
-        Returns:
-            True if push was successful, False otherwise
-        """
-        if not DVC_AVAILABLE or self._dvc_manager is None:
-            logger.error("DVC not available. Cannot push to S3.")
-            return False
-        
-        return self._dvc_manager.push_to_s3()
-    
     def log_artifacts(self, directory: Path, artifact_path: Optional[str] = None):
         """
         Log all files in a directory as artifacts.

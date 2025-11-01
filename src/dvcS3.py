@@ -5,6 +5,10 @@ This module provides DVC integration for versioning data files and models
 with S3 as remote storage. It handles pulling data from S3, pushing data
 to S3, and managing DVC configuration.
 """
+import sys
+print("Python executable:", sys.executable)
+
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict
@@ -24,7 +28,6 @@ class DVCManager:
     """
     Manager class for DVC data versioning with S3 storage.
     """
-    
     def __init__(self):
         """Initialize DVC Manager."""
         self._dvc_repo = None
@@ -96,7 +99,7 @@ class DVCManager:
                     ['dvc', 'remote', 'list'],
                     cwd=repo_root,
                     stderr=subprocess.DEVNULL
-                ).decode().strip().split('\n')
+                ).decode().strip().split('\t')
                 
                 if remote_name in existing_remotes:
                     logger.info(f"Remote '{remote_name}' already exists. Removing it first...")
@@ -248,3 +251,32 @@ class DVCManager:
             logger.error(f"Error pulling data from S3: {e}")
             return False
 
+    @staticmethod
+    def initialize_dvc_s3() -> bool:
+        """
+        Initialize DVC repository.
+        
+        Returns:
+            True if initialization was successful, False otherwise
+        """
+        if not DVC_AVAILABLE:
+            logger.error("DVC not available. Cannot initialize DVC.")
+            return False
+        
+        ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+        SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+        REGION = "us-east-2"
+        # S3 Configuration
+        # Bucket path: s3://itesm-mna/202502-equipo19
+        BUCKET_NAME = "itesm-mna"
+        BUCKET_PATH = "202502-equipo19"
+
+        return DVCManager.setup_s3_remote(
+            bucket_name=BUCKET_NAME,
+            access_key_id=ACCESS_KEY_ID,
+            secret_access_key=SECRET_ACCESS_KEY,
+            region=REGION,
+            remote_name="team_remote",
+            remote_path=BUCKET_PATH,
+            set_as_default=True
+        )
