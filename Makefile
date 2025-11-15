@@ -116,6 +116,31 @@ mlflow-list:
 
 
 #################################################################################
+# API COMMANDS                                                                  #
+#################################################################################
+
+## Train models for API
+.PHONY: train-api
+train-api:
+	$(PYTHON_INTERPRETER) src/train_models_for_api.py
+
+## Run API server
+.PHONY: run-api
+run-api:
+	$(PYTHON_INTERPRETER) src/api/run_server.py
+
+## Run API server with uvicorn directly
+.PHONY: run-api-uvicorn
+run-api-uvicorn:
+	uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+## Stop API server
+.PHONY: stop-api
+stop-api:
+	@pkill -f "python.*run_server" || pkill -f "uvicorn.*src.api.main" || echo "No API server process found"
+
+
+#################################################################################
 # Self Documenting Commands                                                     #
 #################################################################################
 

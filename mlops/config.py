@@ -26,7 +26,12 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 try:
     from tqdm import tqdm
 
-    logger.remove(0)
+    # Remove default handler if it exists
+    try:
+        logger.remove(0)
+    except ValueError:
+        # Handler 0 doesn't exist, that's fine
+        pass
     logger.add(lambda msg: tqdm.write(msg, end=""), colorize=True)
 except ModuleNotFoundError:
     pass

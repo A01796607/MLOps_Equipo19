@@ -10,9 +10,16 @@ try:
 except ImportError:
     ModelTrainer = None  # type: ignore
 
+# Lazy import for API to avoid import errors if fastapi is not installed
+try:
+    from src.api.main import app
+except ImportError:
+    app = None  # type: ignore
+
 __all__ = [
     'DataProcessor',
     'FeatureTransformer',
     'ModelTrainer',
+    'app',
 ]
 
