@@ -12,8 +12,15 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 from loguru import logger
+
+# Optional dependencies
+try:
+    import seaborn as sns
+    SEABORN_AVAILABLE = True
+except ImportError:
+    SEABORN_AVAILABLE = False
+    sns = None  # type: ignore
 
 
 class Plotter:
@@ -22,8 +29,12 @@ class Plotter:
     def __init__(self, figures_dir: Path | str = "reports/figures"):
         self.figures_dir = Path(figures_dir)
         self.figures_dir.mkdir(parents=True, exist_ok=True)
-        # Set a consistent style
-        sns.set(style="whitegrid", context="notebook")
+        # Set a consistent style (if seaborn is available)
+        if SEABORN_AVAILABLE and sns is not None:
+            sns.set(style="whitegrid", context="notebook")
+        else:
+            # Fallback to matplotlib style
+            plt.style.use('default')
 
     def _save(self, fig: plt.Figure, filename: str) -> Path:
         out_path = self.figures_dir / filename
@@ -53,7 +64,11 @@ class Plotter:
         fig = plt.figure(figsize=figsize)
         for idx, col in enumerate(numeric_columns, start=1):
             ax = plt.subplot(n_rows, n_cols, idx)
-            sns.histplot(df[col].dropna(), kde=True, bins=bins, ax=ax)
+            if SEABORN_AVAILABLE and sns is not None:
+                sns.histplot(df[col].dropna(), kde=True, bins=bins, ax=ax)
+            else:
+                # Fallback to matplotlib hist
+                ax.hist(df[col].dropna(), bins=bins, edgecolor='black')
             ax.set_title(f"Histograma de {col}")
         plt.tight_layout()
         out = self._save(fig, filename)
@@ -78,7 +93,11 @@ class Plotter:
         fig = plt.figure(figsize=figsize)
         for idx, col in enumerate(numeric_columns, start=1):
             ax = plt.subplot(n_rows, n_cols, idx)
-            sns.boxplot(y=df[col].dropna(), ax=ax)
+            if SEABORN_AVAILABLE and sns is not None:
+                sns.boxplot(y=df[col].dropna(), ax=ax)
+            else:
+                # Fallback to matplotlib boxplot
+                ax.boxplot(df[col].dropna())
             ax.set_title(f"Boxplot de {col}")
         plt.tight_layout()
         out = self._save(fig, filename)
@@ -106,7 +125,12 @@ class Plotter:
         fig = plt.figure(figsize=figsize)
         for idx, col in enumerate(categorical_columns, start=1):
             ax = plt.subplot(n_rows, n_cols, idx)
-            sns.countplot(x=col, data=df, ax=ax)
+            if SEABORN_AVAILABLE and sns is not None:
+                sns.countplot(x=col, data=df, ax=ax)
+            else:
+                # Fallback to matplotlib bar plot
+                value_counts = df[col].value_counts()
+                ax.bar(value_counts.index, value_counts.values)
             ax.set_title(f"Frecuencia de categorías en {col}")
             ax.set_xlabel(col)
             ax.set_ylabel("Frecuencia")
@@ -134,18 +158,27 @@ class Plotter:
 
         corr_matrix = df[numeric_columns].corr()
 
-        fig = plt.figure(figsize=figsize)
-        ax = plt.gca()
-        sns.heatmap(
-            corr_matrix,
-            cmap="coolwarm",
-            center=0,
-            annot=False,
-            fmt=".2f",
-            linewidths=0.5,
-            ax=ax,
-        )
+        fig, ax = plt.subplots(figsize=figsize)
+        if SEABORN_AVAILABLE and sns is not None:
+            sns.heatmap(
+                corr_matrix,
+                cmap="coolwarm",
+                center=0,
+                annot=False,
+                fmt=".2f",
+                linewidths=0.5,
+                ax=ax,
+            )
+        else:
+            # Fallback to matplotlib imshow
+            im = ax.imshow(corr_matrix, cmap='coolwarm', aspect='auto', vmin=-1, vmax=1)
+            ax.set_xticks(range(len(corr_matrix.columns)))
+            ax.set_yticks(range(len(corr_matrix.columns)))
+            ax.set_xticklabels(corr_matrix.columns, rotation=45, ha='right')
+            ax.set_yticklabels(corr_matrix.columns)
+            plt.colorbar(im, ax=ax)
         ax.set_title("Matriz de correlaciones (variables acústicas)")
+        plt.tight_layout()
         out = self._save(fig, filename)
         plt.close(fig)
         return out
@@ -164,21 +197,36 @@ class Plotter:
             with np.errstate(all="ignore"):
                 cm = cm.astype(float) / cm.sum(axis=1, keepdims=True)
 
-        fig = plt.figure(figsize=figsize)
-        ax = plt.gca()
-        sns.heatmap(
-            cm,
-            annot=True,
-            fmt=".2f" if normalize else "d",
-            cmap=cmap,
-            cbar=False,
-            xticklabels=class_names if class_names is not None else True,
-            yticklabels=class_names if class_names is not None else True,
-            ax=ax,
-        )
+        fig, ax = plt.subplots(figsize=figsize)
+        if SEABORN_AVAILABLE and sns is not None:
+            sns.heatmap(
+                cm,
+                annot=True,
+                fmt=".2f" if normalize else "d",
+                cmap=cmap,
+                cbar=True,
+                xticklabels=class_names if class_names is not None else True,
+                yticklabels=class_names if class_names is not None else True,
+                ax=ax,
+            )
+        else:
+            # Fallback to matplotlib imshow
+            im = ax.imshow(cm, cmap=cmap, aspect='auto')
+            ax.set_xticks(range(len(cm[0])))
+            ax.set_yticks(range(len(cm)))
+            if class_names:
+                ax.set_xticklabels(class_names)
+                ax.set_yticklabels(class_names)
+            # Add text annotations
+            for i in range(len(cm)):
+                for j in range(len(cm[0])):
+                    ax.text(j, i, f"{cm[i, j]:.2f}" if normalize else f"{cm[i, j]:d}",
+                           ha="center", va="center", color="black")
+            plt.colorbar(im, ax=ax)
         ax.set_xlabel("Predicted label")
         ax.set_ylabel("True label")
         ax.set_title("Confusion Matrix" + (" (Normalized)" if normalize else ""))
+        plt.tight_layout()
         out = self._save(fig, filename)
         plt.close(fig)
         return out

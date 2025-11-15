@@ -11,6 +11,7 @@ numpy~=2.3.3
 pandas~=2.3.3
 pip
 pytest~=8.4.2
+pytest-cov~=5.0.0
 python-dotenv~=1.1.1
 scikit-learn~=1.7.2
 tqdm~=4.67.1

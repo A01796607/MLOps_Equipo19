@@ -11,8 +11,21 @@ warnings.filterwarnings('ignore')
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.model_selection import StratifiedKFold
-import lightgbm as lgb
-import optuna
+
+# Optional dependencies
+try:
+    import lightgbm as lgb
+    LIGHTGBM_AVAILABLE = True
+except ImportError:
+    LIGHTGBM_AVAILABLE = False
+    lgb = None  # type: ignore
+
+try:
+    import optuna
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_AVAILABLE = False
+    optuna = None  # type: ignore
 
 
 class ModelTrainer:
@@ -68,7 +81,7 @@ class ModelTrainer:
         y_val: Optional[np.ndarray] = None,
         n_estimators: int = 500,
         early_stopping_rounds: int = 5
-    ) -> lgb.Booster:
+    ):
         """
         Train LightGBM model.
         
@@ -82,7 +95,13 @@ class ModelTrainer:
             
         Returns:
             Trained LightGBM model
+            
+        Raises:
+            ImportError: If lightgbm is not installed
         """
+        if not LIGHTGBM_AVAILABLE:
+            raise ImportError("LightGBM is not installed. Install with: pip install lightgbm")
+        
         logger.info("Training LightGBM model...")
         
         params = {
@@ -131,7 +150,7 @@ class ModelTrainer:
         y_train: np.ndarray,
         n_trials: int = 50,
         n_folds: int = 5
-    ) -> Tuple[lgb.LGBMClassifier, dict]:
+    ) -> Tuple:
         """
         Optimize LightGBM hyperparameters using Optuna.
         
@@ -143,7 +162,15 @@ class ModelTrainer:
             
         Returns:
             Tuple of (best model, best parameters)
+            
+        Raises:
+            ImportError: If lightgbm or optuna is not installed
         """
+        if not LIGHTGBM_AVAILABLE:
+            raise ImportError("LightGBM is not installed. Install with: pip install lightgbm")
+        if not OPTUNA_AVAILABLE:
+            raise ImportError("Optuna is not installed. Install with: pip install optuna")
+        
         logger.info(f"Optimizing LightGBM with {n_trials} trials...")
         
         def objective(trial):
@@ -223,10 +250,22 @@ class ModelTrainer:
         
         model = self.models[model_name]
         
-        if isinstance(model, lgb.Booster):
-            y_pred_proba = model.predict(X)
-            y_pred = y_pred_proba.argmax(axis=1)
+        # Check if it's a LightGBM Booster (if lightgbm is available)
+        if LIGHTGBM_AVAILABLE and lgb is not None:
+            try:
+                # Try to check if it's a Booster
+                if hasattr(model, 'predict') and hasattr(model, 'num_trees'):
+                    # Likely a LightGBM Booster
+                    y_pred_proba = model.predict(X)
+                    y_pred = y_pred_proba.argmax(axis=1)
+                else:
+                    # Regular sklearn-style model
+                    y_pred = model.predict(X)
+            except Exception:
+                # Fallback to regular predict
+                y_pred = model.predict(X)
         else:
+            # Regular sklearn-style model
             y_pred = model.predict(X)
         
         self.predictions[model_name] = y_pred

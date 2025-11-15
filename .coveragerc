@@ -1,0 +1,15 @@
+[run]
+source = src
+omit = 
+    */tests/*
+    */__pycache__/*
+    */setup.py
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+[html]
+directory = htmlcov
+
