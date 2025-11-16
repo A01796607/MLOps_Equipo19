@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: MLOps Model Inference API
+  version: "1.0.0"
+  description: REST API for making predictions with trained ML models
+
+servers:
+  - url: http://localhost:8000
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /predict:
+    post:
+      tags: [Predictions]
+      summary: Make predictions
+      operationId: predict
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictionRequest"
+      responses:
+        "200":
+          description: Prediction result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionResponse"
+        "400":
+          description: Bad request (invalid features or payload)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Model not found or could not be loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    PredictionRequest:
+      type: object
+      required: [features]
+      properties:
+        features:
+          type: array
+          description: List of feature vectors for prediction
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+        model_name:
+          type: string
+          nullable: true
+          description: Name of the model to use for prediction
+          example: random_forest
+
+    PredictionResponse:
+      type: object
+      required: [prediction, model_name]
+      properties:
+        prediction:
+          type: integer
+          description: Predicted class index
+        prediction_label:
+          type: string
+          nullable: true
+          description: Predicted class label (decoded)
+        probabilities:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: number
+            format: float
+          description: Prediction probabilities per class
+        model_name:
+          type: string
+          description: Name of the model used
+
+    HealthResponse:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          example: healthy
+        version:
+          type: string
+          example: "1.0.0"
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+
+
