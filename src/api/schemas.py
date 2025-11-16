@@ -3,6 +3,15 @@ Pydantic schemas for API request/response models.
 """
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
+try:
+    # Pydantic v2
+    from pydantic import field_validator  # type: ignore
+except Exception:
+    # Pydantic v1 fallback (to avoid breaking environments); no-op import here
+    field_validator = None  # type: ignore
+
+
+N_FEATURES = 50
 
 
 class PredictionRequest(BaseModel):
@@ -23,6 +32,17 @@ class PredictionRequest(BaseModel):
         description="Name of the model to use for prediction",
         example="random_forest"
     )
+    # Validate that each sample has exactly N_FEATURES features (Pydantic v2)
+    if 'field_validator' in globals() and field_validator is not None:
+        @field_validator("features")
+        @classmethod
+        def validate_features_length(cls, v: List[List[float]]) -> List[List[float]]:
+            if not v:
+                raise ValueError("Features list cannot be empty")
+            for i, row in enumerate(v):
+                if len(row) != N_FEATURES:
+                    raise ValueError(f"Sample {i} must have {N_FEATURES} features, got {len(row)}")
+            return v
 
 
 class PredictionItem(BaseModel):
