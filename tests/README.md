@@ -1,10 +1,17 @@
-# Tests Unitarios
+# Pruebas automatizadas (unitarias e integración)
 
-Este directorio contiene los tests unitarios para todas las clases del proyecto.
+Este directorio contiene:
+- Pruebas unitarias de los componentes principales.
+- Pruebas de integración que validan el flujo extremo a extremo del pipeline (carga de datos → preprocesamiento → predicción → métricas).
 
 ## Ejecutar Tests
 
-### Todos los tests
+### Comando único (quiet)
+```bash
+pytest -q
+```
+
+### Todos los tests (detallado)
 ```bash
 python3 -m pytest tests/ -v
 ```
@@ -15,6 +22,7 @@ python3 -m pytest tests/test_data_processor.py -v
 python3 -m pytest tests/test_feature_transformer.py -v
 python3 -m pytest tests/test_model_trainer.py -v
 python3 -m pytest tests/test_plotter.py -v
+python3 -m pytest tests/e2e/test_integration_pipeline.py -v
 ```
 
 ### Una clase específica
@@ -56,14 +64,15 @@ python3 -m pytest tests/ --lf
 - `test_feature_transformer.py`: Tests para `FeatureTransformer` (12 tests)
 - `test_model_trainer.py`: Tests para `ModelTrainer` (15 tests, 3 opcionales si lightgbm no está instalado)
 - `test_plotter.py`: Tests para `Plotter` (14 tests)
+- `e2e/test_integration_pipeline.py`: Prueba de integración end-to-end (datos → preprocesamiento → predicción → métricas)
 
 ## Resultados Esperados
 
 ```
-======================== 51 passed, 3 skipped in 2.03s =========================
+======================== 52 passed in XX.XXs =========================
 ```
 
-Los 3 tests skipped son para LightGBM, que se omiten si lightgbm no está instalado.
+Nota: Algunos tests de LightGBM pueden omitirse automáticamente si la librería no está instalada.
 
 ## Code Coverage
 
@@ -102,5 +111,10 @@ python3 -m pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=80
 
 # Ver archivos no cubiertos
 python3 -m pytest tests/ --cov=src --cov-report=term-missing | grep "TOTAL"
+```
+
+También puedes usar Makefile:
+```bash
+make test
 ```
 
