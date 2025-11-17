@@ -24,12 +24,16 @@ from src.feature_transformer import FeatureTransformer
 from src.model_trainer import ModelTrainer
 from src.plotter import Plotter
 from src.dvcS3 import DVCManager
+from src.reproducibility import ensure_reproducibility, DEFAULT_SEED
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, FIGURES_DIR
 from mlops.mlflow import MLflowManager, track_training_experiment
 
 
 def main():
     """Run multiple experiments with different configurations."""
+    
+    # Ensure reproducibility by setting all random seeds
+    reprod_config = ensure_reproducibility(seed=DEFAULT_SEED, verbose=True)
     
     # Initialize MLflow Manager
     mlflow_manager = MLflowManager(
@@ -70,9 +74,9 @@ def main():
     X = df_clean.drop(columns=[target_col])
     y = df_clean[target_col]
     
-    # Split data once
+    # Split data once (using reproducibility config)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, **reprod_config['split'], stratify=y
     )
     print(f"Train set: {X_train.shape}, Test set: {X_test.shape}")
     print()
@@ -153,8 +157,8 @@ def main():
             # Get class names
             class_names = list(transformer.label_encoder.classes_)
             
-            # Step 3: Train model
-            trainer = ModelTrainer(random_state=42)
+            # Step 3: Train model (using reproducibility config)
+            trainer = ModelTrainer(random_state=reprod_config['seed'])
             model = None
             
             if exp_config["model_type"] == "RandomForest":
@@ -168,7 +172,7 @@ def main():
                 params = {
                     "model_type": "RandomForest",
                     "n_estimators": exp_config["n_estimators"],
-                    "random_state": 42,
+                    "random_state": reprod_config['seed'],
                     "use_pca": exp_config.get("use_pca", True),
                     "n_pca_components": exp_config.get("n_components"),
                     "iqr_factor": exp_config["iqr_factor"],
@@ -193,7 +197,7 @@ def main():
                     "learning_rate": exp_config.get("learning_rate", 0.05),
                     "num_leaves": exp_config.get("num_leaves", 31),
                     "n_estimators": exp_config.get("n_estimators", 500),
-                    "random_state": 42,
+                    "random_state": reprod_config['seed'],
                     "use_pca": exp_config.get("use_pca", True),
                     "n_pca_components": exp_config.get("n_components"),
                     "iqr_factor": exp_config["iqr_factor"],

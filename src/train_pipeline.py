@@ -30,10 +30,11 @@ from sklearn.metrics import (
 
 from src.data_processor import DataProcessor
 from src.plotter import Plotter
+from src.reproducibility import ensure_reproducibility, DEFAULT_SEED
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, FIGURES_DIR
 
 
-def create_preprocessing_pipeline(use_pca: bool = True, n_components: int = 50):
+def create_preprocessing_pipeline(use_pca: bool = True, n_components: int = 50, random_state: int = DEFAULT_SEED):
     """
     Create a sklearn Pipeline for preprocessing features.
     
@@ -53,12 +54,12 @@ def create_preprocessing_pipeline(use_pca: bool = True, n_components: int = 50):
     ]
     
     if use_pca:
-        steps.append(('pca', PCA(n_components=n_components, random_state=42)))
+        steps.append(('pca', PCA(n_components=n_components, random_state=random_state)))
     
     return Pipeline(steps)
 
 
-def create_model_pipeline(preprocessor: Pipeline, model_type: str = 'random_forest', **model_params):
+def create_model_pipeline(preprocessor: Pipeline, model_type: str = 'random_forest', random_state: int = DEFAULT_SEED, **model_params):
     """
     Create a complete sklearn Pipeline with preprocessing and model.
     
@@ -78,7 +79,7 @@ def create_model_pipeline(preprocessor: Pipeline, model_type: str = 'random_fore
     if model_type == 'random_forest':
         model = RandomForestClassifier(
             n_estimators=model_params.get('n_estimators', 200),
-            random_state=42
+            random_state=random_state
         )
     else:
         raise ValueError(f"Unknown model_type: {model_type}")
@@ -157,6 +158,9 @@ def main():
     5. Model persistence
     """
     
+    # Ensure reproducibility by setting all random seeds
+    reprod_config = ensure_reproducibility(seed=DEFAULT_SEED, verbose=True)
+    
     # Initialize plotter
     plotter = Plotter(figures_dir=FIGURES_DIR)
     
@@ -217,7 +221,7 @@ def main():
     print("=" * 60)
     
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, **reprod_config['split'], stratify=y
     )
     print(f"Train set: {X_train.shape}, Test set: {X_test.shape}")
     
@@ -235,13 +239,22 @@ def main():
     print("STEP 5: Creating sklearn Pipelines")
     print("=" * 60)
     
-    # Create preprocessing pipeline
-    preprocessor = create_preprocessing_pipeline(use_pca=True, n_components=50)
+    # Create preprocessing pipeline (using reproducibility config)
+    preprocessor = create_preprocessing_pipeline(
+        use_pca=True, 
+        n_components=50, 
+        random_state=reprod_config['seed']
+    )
     print("\nPreprocessing Pipeline created:")
     print("  Steps: StandardScaler -> PCA (50 components)")
     
-    # Create full pipelines with models
-    rf_pipeline = create_model_pipeline(preprocessor, model_type='random_forest', n_estimators=200)
+    # Create full pipelines with models (using reproducibility config)
+    rf_pipeline = create_model_pipeline(
+        preprocessor, 
+        model_type='random_forest', 
+        n_estimators=200,
+        random_state=reprod_config['seed']
+    )
     print("\nRandom Forest Pipeline created:")
     print("  Steps: StandardScaler -> PCA -> RandomForestClassifier")
     
@@ -339,7 +352,8 @@ def main():
     print("  4. Persistence: Save pipeline for inference")
     
     print("\nReproducibility Notes:")
-    print("  - All transformers use random_state=42")
+    print(f"  - All transformers use random_state={reprod_config['seed']}")
+    print(f"  - All random seeds configured via reproducibility module")
     print("  - Pipeline ensures consistent fit/transform separation")
     print("  - No data leakage between train/test sets")
     print("  - Full pipeline can be loaded and used for inference")

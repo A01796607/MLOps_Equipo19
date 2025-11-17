@@ -25,11 +25,15 @@ from loguru import logger
 from src.data_processor import DataProcessor
 from src.feature_transformer import FeatureTransformer
 from src.model_trainer import ModelTrainer, LIGHTGBM_AVAILABLE
+from src.reproducibility import ensure_reproducibility, DEFAULT_SEED
 from mlops.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR
 
 
 def main():
     """Train models and save them for API use."""
+    
+    # Ensure reproducibility by setting all random seeds
+    reprod_config = ensure_reproducibility(seed=DEFAULT_SEED, verbose=True)
     
     logger.info("=" * 60)
     logger.info("Training Models for API")
@@ -65,7 +69,7 @@ def main():
     # ============================================================================
     logger.info("\nSTEP 4: Train-Test Split")
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, **reprod_config['split'], stratify=y
     )
     logger.info(f"Train set: {X_train.shape}, Test set: {X_test.shape}")
     
@@ -90,7 +94,7 @@ def main():
     # ============================================================================
     logger.info("\nSTEP 6: Training Models")
     
-    trainer = ModelTrainer(random_state=42)
+    trainer = ModelTrainer(random_state=reprod_config['seed'])
     
     # Train Random Forest
     logger.info("\n--- Training Random Forest ---")
@@ -114,7 +118,7 @@ def main():
                 X_train_transformed, 
                 y_train_encoded, 
                 test_size=0.2, 
-                random_state=42, 
+                **reprod_config['split'],
                 stratify=y_train_encoded
             )
             

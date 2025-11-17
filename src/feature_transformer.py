@@ -9,24 +9,27 @@ from loguru import logger
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.decomposition import PCA
 
+from src.reproducibility import DEFAULT_SEED
+
 
 class FeatureTransformer:
     """Class for transforming features (encoding, scaling, PCA)."""
     
-    def __init__(self, use_pca: bool = True, n_components: int = 50):
+    def __init__(self, use_pca: bool = True, n_components: int = 50, random_state: int = DEFAULT_SEED):
         """
         Initialize FeatureTransformer.
         
         Args:
             use_pca: Whether to use PCA for dimensionality reduction
             n_components: Number of components for PCA
+            random_state: Random state for PCA (default: DEFAULT_SEED)
         """
         self.use_pca = use_pca
         self.n_components = n_components
         
         self.label_encoder = LabelEncoder()
         self.scaler = StandardScaler()
-        self.pca = PCA(n_components=n_components, random_state=42)
+        self.pca = PCA(n_components=n_components, random_state=random_state)
         
         self.is_fitted = False
     

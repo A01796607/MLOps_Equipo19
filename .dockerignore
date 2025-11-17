@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# MLflow
+mlruns/
+mlflow_artifacts/
+
+# DVC
+.dvc/
+*.dvc
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+test_*.py
+
+# Scripts (not needed in production)
+scripts/
+notebooks/
+
+# Data (except processed transformer)
+data/raw/
+data/external/
+data/interim/
+data/processed/*.dvc
+
+# Other
+.DS_Store
+*.log
+.env
+.env.local
+
+# Makefile and config files not needed
+Makefile
+setup.cfg
+pyproject.toml
+

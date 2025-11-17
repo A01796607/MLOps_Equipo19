@@ -141,6 +141,52 @@ stop-api:
 
 
 #################################################################################
+# REPRODUCIBILITY COMMANDS                                                      #
+#################################################################################
+
+## Save reference metrics for reproducibility validation
+.PHONY: save-reference-metrics
+save-reference-metrics:
+	$(PYTHON_INTERPRETER) scripts/validate_reproducibility.py \
+		--model-type random_forest \
+		--save-reference reference_metrics.json
+
+## Validate reproducibility against reference metrics
+.PHONY: validate-reproducibility
+validate-reproducibility:
+	@if [ ! -f reference_metrics.json ]; then \
+		echo "Error: reference_metrics.json not found. Run 'make save-reference-metrics' first."; \
+		exit 1; \
+	fi
+	$(PYTHON_INTERPRETER) scripts/validate_reproducibility.py \
+		--model-type random_forest \
+		--reference-metrics-file reference_metrics.json \
+		--tolerance 1e-6
+
+## Validate reproducibility using MLflow run ID
+.PHONY: validate-reproducibility-mlflow
+validate-reproducibility-mlflow:
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "Error: RUN_ID not provided. Usage: make validate-reproducibility-mlflow RUN_ID=<mlflow_run_id>"; \
+		exit 1; \
+	fi
+	$(PYTHON_INTERPRETER) scripts/validate_reproducibility.py \
+		--model-type random_forest \
+		--reference-run-id $(RUN_ID) \
+		--tolerance 1e-6
+
+## Train pipeline with reproducibility
+.PHONY: train
+train:
+	$(PYTHON_INTERPRETER) src/train_pipeline.py
+
+## Train experiments with MLflow and reproducibility
+.PHONY: train-experiments
+train-experiments:
+	$(PYTHON_INTERPRETER) src/experiments_mlflow.py
+
+
+#################################################################################
 # Self Documenting Commands                                                     #
 #################################################################################
 
