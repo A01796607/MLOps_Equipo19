@@ -23,6 +23,9 @@ pydantic==2.9.0
 matplotlib==3.10.7
 seaborn==0.13.2
 
+# Model Monitoring
+evidently>=0.4.0,<0.8.0
+
 # Utilities
 loguru==0.7.3
 python-dotenv==1.1.1
